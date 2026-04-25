@@ -1,11 +1,8 @@
-[package]
-name = "chat"
-version = "0.1.1"
-edition = "2024"
-license = "MIT"
-# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
-[dependencies]
+[workspace]
+resolver = "3"
+members = ["chat-server", "notify-server"]
+[workspace.dependencies]
 anyhow = "1.0.102"
 axum = { version = "0.8.9", features = ["http2", "multipart", "query", "tracing"] }
 serde = { version = "1.0.228", features = ["derive"] }
@@ -15,10 +12,3 @@ thiserror = "2.0.18"
 tokio = { version = "1.52.1", features = ["rt", "rt-multi-thread", "macros"] }
 tracing = "0.1.44"
 tracing-subscriber = { version = "0.3.23", features = ["env-filter"] }
-
-[package.metadata.release]
-# Message for the commit that prepares the package version
-pre-release-commit-message = "chore(version): prepare version v{{version}}"
-
-# Description/Annotation message for the Git tag being created
-tag-message = "chore(version): prepare version v{{version}}"

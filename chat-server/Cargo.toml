@@ -1,0 +1,25 @@
+[package]
+name = "chat-server"
+version = "0.1.1"
+edition = "2024"
+license = "MIT"
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+
+[dependencies]
+anyhow = { workspace = true }
+axum = { workspace = true }
+serde = { workspace = true }
+serde_yaml = { workspace = true }
+sqlx = { workspace = true }
+thiserror = { workspace = true }
+tokio = { workspace = true }
+tracing = { workspace = true }
+tracing-subscriber = { workspace = true }
+
+[package.metadata.release]
+# Message for the commit that prepares the package version
+pre-release-commit-message = "chore(version): prepare version v{{version}}"
+
+# Description/Annotation message for the Git tag being created
+tag-message = "chore(version): prepare version v{{version}}"
