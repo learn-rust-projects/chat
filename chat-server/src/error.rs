@@ -3,7 +3,7 @@ use axum::{
     http::StatusCode,
     response::{IntoResponse, Response},
 };
-use jwt_simple::reexports::serde_json::json;
+use serde::{Deserialize, Serialize};
 use thiserror::Error;
 
 #[derive(Debug, Error)]
@@ -15,6 +15,23 @@ pub enum AppError {
     HashError(#[from] argon2::password_hash::Error),
     #[error("jwt error: {0}")]
     JwtError(#[from] jwt_simple::Error),
+    #[error("email already exists: {0}")]
+    EmailAlreadyExists(String),
+    #[error("http header parse error: {0}")]
+    HttpHeaderError(#[from] axum::http::header::InvalidHeaderValue),
+}
+
+#[derive(Debug, Serialize, Deserialize)]
+pub struct ErrorOutput {
+    pub error: String,
+}
+
+impl ErrorOutput {
+    pub fn new(error: impl Into<String>) -> Self {
+        Self {
+            error: error.into(),
+        }
+    }
 }
 
 impl IntoResponse for AppError {
@@ -23,8 +40,10 @@ impl IntoResponse for AppError {
             Self::DatabaseError(_) => StatusCode::INTERNAL_SERVER_ERROR,
             Self::HashError(_) => StatusCode::UNPROCESSABLE_ENTITY,
             Self::JwtError(_) => StatusCode::FORBIDDEN,
+            Self::HttpHeaderError(_) => StatusCode::UNPROCESSABLE_ENTITY,
+            Self::EmailAlreadyExists(_) => StatusCode::CONFLICT,
         };
 
-        (status, Json(json!({"error": self.to_string()}))).into_response()
+        (status, Json(ErrorOutput::new(self.to_string()))).into_response()
     }
 }

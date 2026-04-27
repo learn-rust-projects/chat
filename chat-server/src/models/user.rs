@@ -35,6 +35,11 @@ impl User {
     /// Create a new user
     pub async fn create(input: &CreateUser, pool: &PgPool) -> Result<Self, AppError> {
         let password_hash = hash_password(&input.password)?;
+        // check if email exists
+        let user = Self::find_by_email(&input.email, pool).await?;
+        if user.is_some() {
+            return Err(AppError::EmailAlreadyExists(input.email.clone()));
+        }
         let user    = sqlx::query_as("INSERT INTO users (fullname, email, password_hash) VALUES ($1, $2, $3) RETURNING id, fullname, email, created_at")
                 .bind(&input.fullname)
                 .bind(&input.email)
