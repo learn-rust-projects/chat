@@ -85,6 +85,18 @@ fn verify_password(password: &str, password_hash: &str) -> Result<bool, AppError
 }
 
 #[cfg(test)]
+impl User {
+    pub fn new(id: i64, fullname: &str, email: &str) -> Self {
+        Self {
+            id,
+            fullname: fullname.to_string(),
+            email: email.to_string(),
+            password_hash: None,
+            created_at: chrono::Utc::now(),
+        }
+    }
+}
+#[cfg(test)]
 mod tests {
     use std::{env, path::Path};
 

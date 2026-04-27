@@ -4,6 +4,7 @@ mod config;
 mod error;
 mod handlers;
 mod models;
+mod utils;
 use axum::{
     Router,
     routing::{get, patch, post},
