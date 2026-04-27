@@ -375,6 +375,7 @@ dependencies = [
  "chrono",
  "jwt-simple",
  "serde",
+ "serde_json",
  "serde_yaml",
  "sqlx",
  "sqlx-db-tester",

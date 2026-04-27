@@ -4,9 +4,24 @@ use argon2::{
     Argon2, PasswordHash, PasswordHasher, PasswordVerifier,
     password_hash::{SaltString, rand_core::OsRng},
 };
+use serde::{Deserialize, Serialize};
 use sqlx::PgPool;
 
 use crate::{AppError, User};
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct CreateUser {
+    pub fullname: String,
+    pub email: String,
+    pub password: String,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct SigninUser {
+    pub email: String,
+    pub password: String,
+}
+#[allow(dead_code)]
 impl User {
     /// Find a user by email
     pub async fn find_by_email(email: &str, pool: &PgPool) -> Result<Option<Self>, AppError> {
@@ -18,16 +33,11 @@ impl User {
         Ok(user)
     }
     /// Create a new user
-    pub async fn create(
-        fullname: &str,
-        email: &str,
-        password: &str,
-        pool: &PgPool,
-    ) -> Result<Self, AppError> {
-        let password_hash = hash_password(password)?;
+    pub async fn create(input: &CreateUser, pool: &PgPool) -> Result<Self, AppError> {
+        let password_hash = hash_password(&input.password)?;
         let user    = sqlx::query_as("INSERT INTO users (fullname, email, password_hash) VALUES ($1, $2, $3) RETURNING id, fullname, email, created_at")
-                .bind(fullname)
-                .bind(email)
+                .bind(&input.fullname)
+                .bind(&input.email)
                 .bind(password_hash)
                 .fetch_one(pool)
                 .await?;
@@ -35,21 +45,20 @@ impl User {
     }
     /// Verify a user's password
     pub async fn verify_password(
-        &self,
-        email: &str,
-        password: &str,
+        input: &SigninUser,
         pool: &PgPool,
     ) -> Result<Option<Self>, AppError> {
         let user: Option<User> = sqlx::query_as(
             "SELECT id, fullname, email, password_hash, created_at FROM users WHERE email = $1",
         )
-        .bind(email)
+        .bind(&input.email)
         .fetch_optional(pool)
         .await?;
         match user {
             Some(mut user) => {
                 let password_hash = mem::take(&mut user.password_hash);
-                let is_valid = verify_password(password, &password_hash.unwrap_or_default())?;
+                let is_valid =
+                    verify_password(&input.password, &password_hash.unwrap_or_default())?;
                 if is_valid { Ok(Some(user)) } else { Ok(None) }
             }
             None => Ok(None),
@@ -96,6 +105,27 @@ impl User {
         }
     }
 }
+
+#[cfg(test)]
+impl CreateUser {
+    pub fn new(fullname: &str, email: &str, password: &str) -> Self {
+        Self {
+            fullname: fullname.to_string(),
+            email: email.to_string(),
+            password: password.to_string(),
+        }
+    }
+}
+
+#[cfg(test)]
+impl SigninUser {
+    pub fn new(email: &str, password: &str) -> Self {
+        Self {
+            email: email.to_string(),
+            password: password.to_string(),
+        }
+    }
+}
 #[cfg(test)]
 mod tests {
     use std::{env, path::Path};
@@ -104,6 +134,7 @@ mod tests {
     use sqlx_db_tester::TestPg;
 
     use super::*;
+    use crate::models;
 
     #[test]
     fn hash_password_and_verify_should_work() -> Result<()> {
@@ -119,21 +150,20 @@ mod tests {
         let db_url = env::var("DB_URL").unwrap();
         let tdb = TestPg::new(db_url, Path::new("../migrations"));
         let pool = tdb.get_pool().await;
-        let email = "tchen@acme.org";
-        let name = "Tyr Chen";
-        let password = "hunter42";
-        let user = User::create(name, email, password, &pool).await?;
-        assert_eq!(user.email, email);
-        assert_eq!(user.fullname, name);
+        let input = CreateUser::new("jchen@chat.org", "Jack Chen", "hunter42");
+        let user = User::create(&input, &pool).await?;
+        assert_eq!(user.email, input.email);
+        assert_eq!(user.fullname, input.fullname);
         assert!(user.id > 0);
 
-        let user = User::find_by_email(email, &pool).await?;
+        let user = User::find_by_email(&input.email, &pool).await?;
         assert!(user.is_some());
         let user = user.unwrap();
-        assert_eq!(user.email, email);
-        assert_eq!(user.fullname, name);
+        assert_eq!(user.email, input.email);
+        assert_eq!(user.fullname, input.fullname);
 
-        let user = user.verify_password(email, password, &pool).await?;
+        let input = SigninUser::new(&input.email, &input.password);
+        let user = models::User::verify_password(&input, &pool).await?;
         assert!(user.is_some());
 
         Ok(())
