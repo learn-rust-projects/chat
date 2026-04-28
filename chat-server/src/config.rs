@@ -2,6 +2,7 @@ use std::{env, fs::File};
 
 use anyhow::{Result, bail};
 use serde::{Deserialize, Serialize};
+
 #[derive(Debug, Serialize, Deserialize)]
 pub struct AppConfig {
     pub server: ServerConfig,
