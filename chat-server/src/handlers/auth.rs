@@ -43,12 +43,10 @@ mod tests {
     use http_body_util::BodyExt;
 
     use super::*;
-    use crate::AppConfig;
 
     #[tokio::test]
     async fn signup_should_work() -> Result<()> {
-        let config = AppConfig::load()?;
-        let (_tdb, state) = AppState::new_for_test(config).await?;
+        let (_tdb, state) = AppState::new_for_test().await?;
         let input = CreateUser::new("Tyr Chen", "tchen@acme.org", "Hunter42");
         let ret = signup_handler(State(state), Json(input))
             .await?
@@ -62,8 +60,7 @@ mod tests {
 
     #[tokio::test]
     async fn signup_duplicate_user_should_409() -> Result<()> {
-        let config = AppConfig::load()?;
-        let (_tdb, state) = AppState::new_for_test(config).await?;
+        let (_tdb, state) = AppState::new_for_test().await?;
         let input = CreateUser::new("Tyr Chen", "tchen@acme.org", "Hunter42");
         signup_handler(State(state.clone()), Json(input.clone())).await?;
         let ret = signup_handler(State(state.clone()), Json(input.clone()))
@@ -79,8 +76,7 @@ mod tests {
 
     #[tokio::test]
     async fn signin_should_work() -> Result<()> {
-        let config = AppConfig::load()?;
-        let (_tdb, state) = AppState::new_for_test(config).await?;
+        let (_tdb, state) = AppState::new_for_test().await?;
         let name = "Alice";
         let email = "alice@acme.org";
         let password = "Hunter42";
@@ -100,8 +96,7 @@ mod tests {
 
     #[tokio::test]
     async fn signin_with_non_exist_user_should_403() -> Result<()> {
-        let config = AppConfig::load()?;
-        let (_tdb, state) = AppState::new_for_test(config).await?;
+        let (_tdb, state) = AppState::new_for_test().await?;
         let email = "alice@acme.org";
         let password = "Hunter42";
         let input = SigninUser::new(email, password);

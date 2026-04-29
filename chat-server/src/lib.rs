@@ -86,7 +86,7 @@ pub async fn get_router(config: AppConfig) -> Result<Router, AppError> {
 
 #[cfg(test)]
 impl AppState {
-    pub async fn new_for_test(
+    pub async fn new_for_test_with_config(
         config: AppConfig,
     ) -> Result<(sqlx_db_tester::TestPg, Self), AppError> {
         use sqlx_db_tester::TestPg;
@@ -106,6 +106,11 @@ impl AppState {
                 db: pool,
             }),
         };
+        Ok((tdb, state))
+    }
+    pub async fn new_for_test() -> Result<(sqlx_db_tester::TestPg, Self), AppError> {
+        let config = AppConfig::load()?;
+        let (tdb, state) = Self::new_for_test_with_config(config).await?;
         Ok((tdb, state))
     }
 }

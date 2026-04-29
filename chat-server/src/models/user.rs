@@ -133,13 +133,11 @@ impl SigninUser {
 }
 #[cfg(test)]
 mod tests {
-    use std::{env, path::Path};
 
     use anyhow::Result;
-    use sqlx_db_tester::TestPg;
 
     use super::*;
-    use crate::models;
+    use crate::{AppState, models};
 
     #[test]
     fn hash_password_and_verify_should_work() -> Result<()> {
@@ -152,8 +150,7 @@ mod tests {
 
     #[tokio::test]
     async fn create_and_verify_user_should_work() -> Result<()> {
-        let db_url = env::var("DB_URL").unwrap();
-        let tdb = TestPg::new(db_url, Path::new("../migrations"));
+        let (tdb, _) = AppState::new_for_test().await?;
         let pool = tdb.get_pool().await;
         let input = CreateUser::new("jchen@chat.org", "Jack Chen", "hunter42");
         let user = User::create(&input, &pool).await?;
