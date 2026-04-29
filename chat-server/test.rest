@@ -4,6 +4,15 @@ POST http://localhost:6688/api/signup
 Content-Type: application/json
 
 {
+"fullname": "Tyr Chen", "email": "tchen@acme.org", "password": "123456", "workspace": "acme"
+}
+
+### signup user
+
+POST http://localhost:6688/api/signup
+Content-Type: application/json
+
+{
 "fullname": "Alice Chen", "email": "alice@acme.org", "password": "123456", "workspace": "test"
 }
 
@@ -14,7 +23,7 @@ Content-Type: application/json
 
 {
     "email": "tchen@acme.org",
-    "password": "123456"
+    "password": "1234567"
 }
 
 ### signin user (valid)
@@ -29,9 +38,23 @@ Content-Type: application/json
 }
 
 
-### get chat list
+
+
+### create chat
 @token = {{signin.response.body.token}}
-GET http://localhost:6688/api/chat
+POST http://localhost:6688/api/chats
+Content-Type: application/json
+Authorization: Bearer {{token}}
+
+{
+    "name": "acme",
+    "members": [1, 2],
+    "public": false
+}
+
+### get chat list
+
+GET http://localhost:6688/api/chats
 Authorization: Bearer {{token}}
 
 ### get user list
