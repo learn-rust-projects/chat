@@ -34,6 +34,17 @@ jobs:
         platform: [ubuntu-latest] # Build platform configuration
     # Runtime environment
     runs-on: ${{ matrix.platform }}
+    services:
+      postgres:
+        # Docker Hub image
+        image: postgres
+        env:
+          POSTGRES_PASSWORD: postgres
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
     outputs:
       release_success: ${{ steps.Release.outcome }}
     # Step definitions
