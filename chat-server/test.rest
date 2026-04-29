@@ -4,7 +4,7 @@ POST http://localhost:6688/api/signup
 Content-Type: application/json
 
 {
-"fullname": "Alice Chen", "email": "alice@acme.org", "password": "123456"
+"fullname": "Alice Chen", "email": "alice@acme.org", "password": "123456", "workspace": "test"
 }
 
 ### signin user (invalid)
@@ -32,4 +32,9 @@ Content-Type: application/json
 ### get chat list
 @token = {{signin.response.body.token}}
 GET http://localhost:6688/api/chat
+Authorization: Bearer {{token}}
+
+### get user list
+
+GET http://localhost:6688/api/users
 Authorization: Bearer {{token}}

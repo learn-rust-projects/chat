@@ -52,7 +52,7 @@ mod tests {
     #[tokio::test]
     async fn signup_should_work() -> Result<()> {
         let (_tdb, state) = AppState::new_for_test().await?;
-        let input = CreateUser::new("Tyr Chen", "tchen@acme.org", "Hunter42");
+        let input = CreateUser::new("Tyr Chen", "tchen@acme.org", "Hunter42", "none");
         let ret = signup_handler(State(state), Json(input))
             .await?
             .into_response();
@@ -66,7 +66,7 @@ mod tests {
     #[tokio::test]
     async fn signup_duplicate_user_should_409() -> Result<()> {
         let (_tdb, state) = AppState::new_for_test().await?;
-        let input = CreateUser::new("Tyr Chen", "tchen@acme.org", "Hunter42");
+        let input = CreateUser::new("Tyr Chen", "tchen@acme.org", "Hunter42", "none");
         signup_handler(State(state.clone()), Json(input.clone())).await?;
         let ret = signup_handler(State(state.clone()), Json(input.clone()))
             .await
@@ -85,7 +85,7 @@ mod tests {
         let name = "Alice";
         let email = "alice@acme.org";
         let password = "Hunter42";
-        let user = CreateUser::new(name, email, password);
+        let user = CreateUser::new(name, email, password, "none");
         User::create(&user, &state.db).await?;
         let input = SigninUser::new(email, password);
         let ret = signin_handler(State(state), Json(input))
