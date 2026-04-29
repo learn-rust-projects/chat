@@ -52,7 +52,7 @@ mod tests {
     #[tokio::test]
     async fn signup_should_work() -> Result<()> {
         let (_tdb, state) = AppState::new_for_test().await?;
-        let input = CreateUser::new("Tyr Chen", "tchen@acme.org", "Hunter42", "none");
+        let input = CreateUser::new("Jack Chen", "Jack@acme.org", "Hunter42", "none");
         let ret = signup_handler(State(state), Json(input))
             .await?
             .into_response();
@@ -67,8 +67,7 @@ mod tests {
     async fn signup_duplicate_user_should_409() -> Result<()> {
         let (_tdb, state) = AppState::new_for_test().await?;
         let input = CreateUser::new("Tyr Chen", "tchen@acme.org", "Hunter42", "none");
-        signup_handler(State(state.clone()), Json(input.clone())).await?;
-        let ret = signup_handler(State(state.clone()), Json(input.clone()))
+        let ret = signup_handler(State(state), Json(input))
             .await
             .into_response();
         assert_eq!(ret.status(), StatusCode::CONFLICT);
@@ -82,11 +81,8 @@ mod tests {
     #[tokio::test]
     async fn signin_should_work() -> Result<()> {
         let (_tdb, state) = AppState::new_for_test().await?;
-        let name = "Alice";
-        let email = "alice@acme.org";
-        let password = "Hunter42";
-        let user = CreateUser::new(name, email, password, "none");
-        User::create(&user, &state.db).await?;
+        let email = "tchen@acme.org";
+        let password = "123456";
         let input = SigninUser::new(email, password);
         let ret = signin_handler(State(state), Json(input))
             .await?
@@ -102,7 +98,7 @@ mod tests {
     #[tokio::test]
     async fn signin_with_non_exist_user_should_403() -> Result<()> {
         let (_tdb, state) = AppState::new_for_test().await?;
-        let email = "alice@acme.org";
+        let email = "alice1@acme.org";
         let password = "Hunter42";
         let input = SigninUser::new(email, password);
         let ret = signin_handler(State(state), Json(input))

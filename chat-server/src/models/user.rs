@@ -158,7 +158,7 @@ mod tests {
     use anyhow::Result;
 
     use super::*;
-    use crate::{AppState, models};
+    use crate::{models, test_util::get_test_pool};
 
     #[test]
     fn hash_password_and_verify_should_work() -> Result<()> {
@@ -171,11 +171,9 @@ mod tests {
 
     #[tokio::test]
     async fn create_duplicate_user_should_fail() -> Result<()> {
-        let (tdb, _) = AppState::new_for_test().await?;
-        let pool = tdb.get_pool().await;
+        let (_test_pg, pool) = get_test_pool().await?;
 
-        let input = CreateUser::new("Tyr Chen", "tchen@acme.org", "hunter42", "none");
-        User::create(&input, &pool).await?;
+        let input = CreateUser::new("Tyr Chen", "tchen@acme.org", "123456", "acme");
         let ret = User::create(&input, &pool).await;
         match ret {
             Err(AppError::EmailAlreadyExists(email)) => {
@@ -188,8 +186,7 @@ mod tests {
 
     #[tokio::test]
     async fn create_and_verify_user_should_work() -> Result<()> {
-        let (tdb, _) = AppState::new_for_test().await?;
-        let pool = tdb.get_pool().await;
+        let (_test_pg, pool) = get_test_pool().await?;
         let input = CreateUser::new("jchen@chat.org", "Jack Chen", "hunter42", "none");
         let user = User::create(&input, &pool).await?;
         assert_eq!(user.email, input.email);
