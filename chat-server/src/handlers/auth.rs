@@ -43,12 +43,11 @@ mod tests {
     use axum::{
         Router, body::Body, extract::Request, middleware::from_fn_with_state, routing::get,
     };
+    use chat_core::middlewares::verify_token;
     use http_body_util::BodyExt;
     use tower::ServiceExt;
 
     use super::*;
-    use crate::{middlewares::verify_token, models::User};
-
     #[tokio::test]
     async fn signup_should_work() -> Result<()> {
         let (_tdb, state) = AppState::new_for_test().await?;
@@ -118,12 +117,12 @@ mod tests {
     async fn verify_token_middleware_should_work() -> Result<()> {
         let (_tdb, state) = AppState::new_for_test().await?;
 
-        let user = User::new(1, "Tyr Chen", "tchen@acme.org");
-        let token = state.ek.sign(user)?;
+        let user = state.find_user_by_id(1).await?.unwrap();
+        let token = state.inner.ek.sign(user)?;
 
         let app = Router::new()
             .route("/", get(handler))
-            .layer(from_fn_with_state(state.clone(), verify_token))
+            .layer(from_fn_with_state(state.clone(), verify_token::<AppState>))
             .with_state(state);
 
         // good token

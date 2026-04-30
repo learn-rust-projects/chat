@@ -4,10 +4,11 @@ use axum::{
     http::StatusCode,
     response::IntoResponse,
 };
+use chat_core::User;
 
 use crate::{
     AppError, AppState,
-    models::{CreateChat, UpdateChat, User},
+    models::{CreateChat, UpdateChat},
 };
 
 pub(crate) async fn list_chat_handler(

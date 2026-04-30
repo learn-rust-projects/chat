@@ -4,12 +4,13 @@ use axum::{
     http::HeaderMap,
     response::IntoResponse,
 };
+use chat_core::User;
 use tokio::fs;
 use tracing::{info, warn};
 
 use crate::{
     AppError, AppState,
-    models::{ChatFile, CreateMessage, ListMessages, User},
+    models::{ChatFile, CreateMessage, ListMessages},
 };
 
 pub(crate) async fn send_message_handler(

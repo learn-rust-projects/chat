@@ -1,6 +1,6 @@
+use chat_core::{Chat, ChatType};
 use serde::{Deserialize, Serialize};
 
-use super::{Chat, ChatType};
 use crate::{AppError, AppState};
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -205,6 +205,7 @@ impl UpdateChat {
 
 #[cfg(test)]
 mod tests {
+
     use super::*;
 
     #[tokio::test]

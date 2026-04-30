@@ -1,4 +1,6 @@
-use crate::{AppError, AppState, models::Workspace};
+use chat_core::Workspace;
+
+use crate::{AppError, AppState};
 impl AppState {
     pub async fn create_workspace(&self, name: &str, owner_id: i64) -> Result<Workspace, AppError> {
         let ws = sqlx::query_as(
@@ -65,7 +67,6 @@ impl AppState {
     }
 }
 
-impl Workspace {}
 #[cfg(test)]
 mod tests {
     use anyhow::Result;

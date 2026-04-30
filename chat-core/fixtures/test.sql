@@ -1,4 +1,3 @@
--- Add migration script here
 -- insert 3 workspaces
 INSERT INTO workspaces(name, owner_id)
   VALUES ('acme', 0),

@@ -4,10 +4,10 @@ use argon2::{
     Argon2, PasswordHash, PasswordHasher, PasswordVerifier,
     password_hash::{SaltString, rand_core::OsRng},
 };
+use chat_core::{ChatUser, User};
 use serde::{Deserialize, Serialize};
 
-use crate::{AppError, AppState, User, models::ChatUser};
-
+use crate::{AppError, AppState};
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct CreateUser {
     pub fullname: String,
@@ -150,20 +150,6 @@ fn verify_password(password: &str, password_hash: &str) -> Result<bool, AppError
         .is_ok();
 
     Ok(is_valid)
-}
-
-#[cfg(test)]
-impl User {
-    pub fn new(id: i64, fullname: &str, email: &str) -> Self {
-        Self {
-            id,
-            fullname: fullname.to_string(),
-            email: email.to_string(),
-            password_hash: None,
-            ws_id: 0,
-            created_at: chrono::Utc::now(),
-        }
-    }
 }
 
 #[cfg(test)]
