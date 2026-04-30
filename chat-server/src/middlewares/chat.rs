@@ -1,0 +1,85 @@
+use axum::{
+    extract::{FromRequestParts, Path, Request, State},
+    middleware::Next,
+    response::{IntoResponse, Response},
+};
+
+use crate::{AppError, AppState, User};
+
+pub async fn verify_chat(State(state): State<AppState>, req: Request, next: Next) -> Response {
+    let (mut parts, body) = req.into_parts();
+    let Path(chat_id) = Path::<u64>::from_request_parts(&mut parts, &state)
+        .await
+        .unwrap();
+
+    let user = parts.extensions.get::<User>().unwrap();
+    if !state
+        .is_chat_member(chat_id, user.id as _)
+        .await
+        .unwrap_or_default()
+    {
+        let err = AppError::CreateMessageError(format!(
+            "User {} are not a member of chat {chat_id}",
+            user.id
+        ));
+        return err.into_response();
+    }
+
+    let req = Request::from_parts(parts, body);
+    next.run(req).await
+}
+
+#[cfg(test)]
+mod tests {
+    use anyhow::Result;
+    use axum::{
+        Router, body::Body, extract::Request, http::StatusCode, middleware::from_fn_with_state,
+        response::IntoResponse, routing::get,
+    };
+    use tower::ServiceExt;
+    async fn handler(_req: Request) -> impl IntoResponse {
+        (StatusCode::OK, "ok")
+    }
+    use crate::{
+        AppState,
+        middlewares::{verify_chat, verify_token},
+    };
+    #[tokio::test]
+    async fn verify_token_middleware_should_work() -> Result<()> {
+        let (_tdb, state) = AppState::new_for_test().await?;
+
+        let user = state.find_user_by_id(5).await?.expect("user should exist");
+        let token = state.ek.sign(user)?;
+
+        let app = Router::new()
+            .route("/{id}", get(handler))
+            .layer(from_fn_with_state(state.clone(), verify_chat))
+            .layer(from_fn_with_state(state.clone(), verify_token))
+            .with_state(state);
+
+        // user in chat
+        let req = Request::builder()
+            .uri("/1")
+            .header("Authorization", format!("Bearer {}", token))
+            .body(Body::empty())?;
+        let res = app.clone().oneshot(req).await?;
+        assert_eq!(res.status(), StatusCode::OK);
+
+        // user in chat
+        let req = Request::builder()
+            .uri("/2")
+            .header("Authorization", "Bearer bad-token")
+            .body(Body::empty())?;
+        let res = app.clone().oneshot(req).await?;
+        assert_eq!(res.status(), StatusCode::FORBIDDEN);
+
+        // chat is not exist
+        let req = Request::builder()
+            .uri("/6")
+            .header("Authorization", "Bearer bad-token")
+            .body(Body::empty())?;
+        let res = app.oneshot(req).await?;
+        assert_eq!(res.status(), StatusCode::FORBIDDEN);
+        Ok(())
+    }
+}

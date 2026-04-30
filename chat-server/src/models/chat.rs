@@ -154,6 +154,21 @@ impl AppState {
 
         Ok(())
     }
+    pub async fn is_chat_member(&self, chat_id: u64, user_id: u64) -> Result<bool, AppError> {
+        let is_member: Option<sqlx::postgres::PgRow> = sqlx::query(
+            r#"
+            SELECT 1
+            FROM chats
+            WHERE id = $1 AND $2 = ANY(members)
+            "#,
+        )
+        .bind(chat_id as i64)
+        .bind(user_id as i64)
+        .fetch_optional(&self.pool)
+        .await?;
+
+        Ok(is_member.is_some())
+    }
 }
 #[cfg(test)]
 impl CreateChat {
@@ -266,13 +281,36 @@ mod tests {
     async fn chat_delete_by_id_should_work() -> Result<(), AppError> {
         let (_tdb, app_state) = AppState::new_for_test().await?;
         app_state
-            .delete_chat_by_id(1)
+            .delete_chat_by_id(2)
             .await
             .expect("delete chat by id failed");
 
-        if let Some(chat) = app_state.get_chat_by_id(1).await? {
+        if let Some(chat) = app_state.get_chat_by_id(2).await? {
             panic!("chat should be deleted but still exists: {:?}", chat);
         }
+        Ok(())
+    }
+    #[tokio::test]
+    async fn chat_is_member_should_work() -> Result<(), AppError> {
+        let (_tdb, state) = AppState::new_for_test().await?;
+        let is_member = state.is_chat_member(1, 1).await.expect("is member failed");
+        assert!(is_member);
+
+        // user 6 doesn't exist
+        let is_member = state.is_chat_member(1, 6).await.expect("is member failed");
+        assert!(!is_member);
+
+        // chat 10 doesn't exist
+        let is_member = state.is_chat_member(10, 1).await.expect("is member failed");
+        assert!(!is_member);
+
+        // user 4 is not a member of chat 2
+        let is_member = state.is_chat_member(2, 4).await.expect("is member failed");
+        assert!(!is_member);
+
+        // user 2 is a member of chat 2
+        let is_member = state.is_chat_member(2, 2).await.expect("is member failed");
+        assert!(is_member);
         Ok(())
     }
 }

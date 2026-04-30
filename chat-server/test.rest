@@ -17,13 +17,13 @@ Content-Type: application/json
 }
 
 ### signin user (invalid)
-
+# @name signin
 POST http://localhost:6688/api/signin
 Content-Type: application/json
 
 {
     "email": "tchen@acme.org",
-    "password": "1234567"
+    "password": "123456"
 }
 
 ### signin user (valid)
@@ -89,4 +89,21 @@ Authorization: Bearer {{token}}
 
 ### get files txt
 GET http://localhost:6688/api/files/2/0a0/a9f/2a6772942557ab5355d76af442f8f65e01.txt
+Authorization: Bearer {{token}}
+
+
+### send a message
+
+POST http://localhost:6688/api/chats/1
+Content-Type: application/json
+Authorization: Bearer {{token}}
+
+{
+    "content": "Hello, alice!",
+    "files": []
+}
+
+### get messages
+
+GET http://localhost:6688/api/chats/1/messages?limit=10&last_id=20
 Authorization: Bearer {{token}}

@@ -5,6 +5,7 @@ mod user;
 mod workspace;
 pub use chat::*;
 use chrono::{DateTime, Utc};
+pub use message::*;
 use serde::{Deserialize, Serialize};
 use sqlx::FromRow;
 pub use user::*;
