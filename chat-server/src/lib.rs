@@ -123,7 +123,7 @@ mod test_util {
             Ok((tdb, state))
         }
     }
-
+    #[allow(dead_code)]
     pub async fn get_test_pool() -> Result<(TestPg, PgPool), AppError> {
         let config = AppConfig::load()?;
         get_test_pool_with_config(&config).await

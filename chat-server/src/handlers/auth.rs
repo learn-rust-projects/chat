@@ -4,7 +4,7 @@ use serde::{Deserialize, Serialize};
 use crate::{
     AppError, AppState,
     error::ErrorOutput,
-    models::{CreateUser, SigninUser, User},
+    models::{CreateUser, SigninUser},
 };
 
 #[derive(Debug, Serialize, Deserialize)]
@@ -15,7 +15,7 @@ pub(crate) async fn signup_handler(
     State(state): State<AppState>,
     Json(input): Json<CreateUser>,
 ) -> Result<impl IntoResponse, AppError> {
-    let user = User::create(&input, &state.pool).await?;
+    let user = state.create_user(&input).await?;
     let token = state.ek.sign(user)?;
     let body = Json(AuthOutput { token });
     Ok((StatusCode::CREATED, body))
@@ -24,7 +24,7 @@ pub(crate) async fn signin_handler(
     State(state): State<AppState>,
     Json(input): Json<SigninUser>,
 ) -> Result<impl IntoResponse, AppError> {
-    let user = User::verify_password(&input, &state.pool).await?;
+    let user = state.verify_user(&input).await?;
     match user {
         Some(user) => {
             let token = state.ek.sign(user)?;
@@ -47,7 +47,7 @@ mod tests {
     use tower::ServiceExt;
 
     use super::*;
-    use crate::middlewares::verify_token;
+    use crate::{middlewares::verify_token, models::User};
 
     #[tokio::test]
     async fn signup_should_work() -> Result<()> {

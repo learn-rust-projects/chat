@@ -1,8 +1,7 @@
 use serde::{Deserialize, Serialize};
-use sqlx::PgPool;
 
 use super::{Chat, ChatType};
-use crate::{AppError, models::ChatUser};
+use crate::{AppError, AppState};
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct CreateChat {
@@ -29,8 +28,8 @@ impl From<UpdateChat> for CreateChat {
 }
 
 #[allow(dead_code)]
-impl Chat {
-    pub async fn check(input: &CreateChat, _ws_id: i64, pool: &PgPool) -> Result<(), AppError> {
+impl AppState {
+    pub async fn check_chat_input(&self, input: &CreateChat) -> Result<(), AppError> {
         // check size of members must be at least 2
         let len = input.members.len();
         if len < 2 {
@@ -45,7 +44,7 @@ impl Chat {
             ));
         }
         // verify if all members exist
-        let users = ChatUser::fetch_by_ids(&input.members, pool).await?;
+        let users = self.fetch_chat_users_by_ids(&input.members).await?;
         if users.len() != len {
             return Err(AppError::CreateChatError(
                 "Some members do not exist".to_string(),
@@ -53,8 +52,8 @@ impl Chat {
         }
         Ok(())
     }
-    pub async fn create(input: CreateChat, ws_id: i64, pool: &PgPool) -> Result<Self, AppError> {
-        Self::check(&input, ws_id, pool).await?;
+    pub async fn create_chat(&self, input: CreateChat, ws_id: i64) -> Result<Chat, AppError> {
+        self.check_chat_input(&input).await?;
         let chat_type = match (&input.name, input.members.len()) {
             (None, 2) => ChatType::Single,
             (None, _) => ChatType::Group,
@@ -78,13 +77,13 @@ impl Chat {
         .bind(input.name)
         .bind(chat_type)
         .bind(&input.members)
-        .fetch_one(pool)
+        .fetch_one(&self.pool)
         .await?;
 
         Ok(chat)
     }
     /// fetch all chats in a workspace
-    pub async fn fetch_all(ws_id: i64, pool: &PgPool) -> Result<Vec<Self>, AppError> {
+    pub async fn fetch_all_chats(&self, ws_id: i64) -> Result<Vec<Chat>, AppError> {
         let chats = sqlx::query_as(
             r#"
             SELECT id, ws_id, name, type, members, created_at
@@ -93,12 +92,12 @@ impl Chat {
             "#,
         )
         .bind(ws_id)
-        .fetch_all(pool)
+        .fetch_all(&self.pool)
         .await?;
 
         Ok(chats)
     }
-    pub async fn get_by_id(id: i64, pool: &PgPool) -> Result<Option<Self>, AppError> {
+    pub async fn get_chat_by_id(&self, id: i64) -> Result<Option<Chat>, AppError> {
         let chat = sqlx::query_as(
             r#"
             SELECT id, ws_id, name, type, members, created_at
@@ -107,13 +106,13 @@ impl Chat {
             "#,
         )
         .bind(id)
-        .fetch_optional(pool)
+        .fetch_optional(&self.pool)
         .await?;
 
         Ok(chat)
     }
-    pub async fn update_by_id(input: UpdateChat, pool: &PgPool) -> Result<Self, AppError> {
-        Self::check(&input.clone().into(), 0, pool).await?;
+    pub async fn update_chat_by_id(&self, input: UpdateChat) -> Result<Chat, AppError> {
+        self.check_chat_input(&input.clone().into()).await?;
         let chat_type = match (&input.name, input.members.len()) {
             (None, 2) => ChatType::Single,
             (None, _) => ChatType::Group,
@@ -137,12 +136,12 @@ impl Chat {
         .bind(chat_type)
         .bind(&input.members)
         .bind(input.id)
-        .fetch_one(pool)
+        .fetch_one(&self.pool)
         .await?;
 
         Ok(chat)
     }
-    pub async fn delete_by_id(id: i64, pool: &PgPool) -> Result<(), AppError> {
+    pub async fn delete_chat_by_id(&self, id: i64) -> Result<(), AppError> {
         sqlx::query(
             r#"
             DELETE FROM chats
@@ -150,7 +149,7 @@ impl Chat {
             "#,
         )
         .bind(id)
-        .execute(pool)
+        .execute(&self.pool)
         .await?;
 
         Ok(())
@@ -192,13 +191,13 @@ impl UpdateChat {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::test_util::get_test_pool;
 
     #[tokio::test]
     async fn create_single_chat_should_work() -> Result<(), AppError> {
-        let (_tdb, pool) = get_test_pool().await?;
+        let (_tdb, app_state) = AppState::new_for_test().await?;
         let input = CreateChat::new("", &[1, 2], false);
-        let chat = Chat::create(input, 1, &pool)
+        let chat = app_state
+            .create_chat(input, 1)
             .await
             .expect("create chat failed");
         assert_eq!(chat.ws_id, 1);
@@ -209,9 +208,10 @@ mod tests {
 
     #[tokio::test]
     async fn create_public_named_chat_should_work() -> Result<(), AppError> {
-        let (_tdb, pool) = get_test_pool().await?;
+        let (_tdb, app_state) = AppState::new_for_test().await?;
         let input = CreateChat::new("general", &[1, 2, 3], true);
-        let chat = Chat::create(input, 1, &pool)
+        let chat = app_state
+            .create_chat(input, 1)
             .await
             .expect("create chat failed");
         assert_eq!(chat.ws_id, 1);
@@ -222,8 +222,9 @@ mod tests {
 
     #[tokio::test]
     async fn chat_get_by_id_should_work() -> Result<(), AppError> {
-        let (_tdb, pool) = get_test_pool().await?;
-        let chat = Chat::get_by_id(1, &pool)
+        let (_tdb, app_state) = AppState::new_for_test().await?;
+        let chat = app_state
+            .get_chat_by_id(1)
             .await
             .expect("get chat by id failed")
             .unwrap();
@@ -237,8 +238,9 @@ mod tests {
 
     #[tokio::test]
     async fn chat_fetch_all_should_work() -> Result<(), AppError> {
-        let (_tdb, pool) = get_test_pool().await?;
-        let chats = Chat::fetch_all(1, &pool)
+        let (_tdb, app_state) = AppState::new_for_test().await?;
+        let chats = app_state
+            .fetch_all_chats(1)
             .await
             .expect("fetch all chats failed");
 
@@ -247,9 +249,10 @@ mod tests {
     }
     #[tokio::test]
     async fn chat_update_by_id_should_work() -> Result<(), AppError> {
-        let (_tdb, pool) = get_test_pool().await?;
+        let (_tdb, app_state) = AppState::new_for_test().await?;
         let input = UpdateChat::new(1, "random", &[1, 2], false);
-        let chat = Chat::update_by_id(input, &pool)
+        let chat = app_state
+            .update_chat_by_id(input)
             .await
             .expect("update chat by id failed");
         assert_eq!(chat.id, 1);
@@ -261,12 +264,13 @@ mod tests {
     }
     #[tokio::test]
     async fn chat_delete_by_id_should_work() -> Result<(), AppError> {
-        let (_tdb, pool) = get_test_pool().await?;
-        Chat::delete_by_id(1, &pool)
+        let (_tdb, app_state) = AppState::new_for_test().await?;
+        app_state
+            .delete_chat_by_id(1)
             .await
             .expect("delete chat by id failed");
 
-        if let Some(chat) = Chat::get_by_id(1, &pool).await? {
+        if let Some(chat) = app_state.get_chat_by_id(1).await? {
             panic!("chat should be deleted but still exists: {:?}", chat);
         }
         Ok(())
