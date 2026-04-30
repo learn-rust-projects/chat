@@ -21,6 +21,11 @@ pub enum AppError {
     HttpHeaderError(#[from] axum::http::header::InvalidHeaderValue),
     #[error("create chat error: {0}")]
     CreateChatError(String),
+    #[error("create message error: {0}")]
+    CreateMessageError(String),
+
+    #[error("{0}")]
+    ChatFileError(String),
     #[error("Not found: {0}")]
     NotFound(String),
     #[error("io error: {0}")]
@@ -53,6 +58,8 @@ impl IntoResponse for AppError {
             Self::NotFound(_) => StatusCode::NOT_FOUND,
             Self::IoError(_) => StatusCode::INTERNAL_SERVER_ERROR,
             Self::MultipartError(_) => StatusCode::BAD_REQUEST,
+            Self::CreateMessageError(_) => StatusCode::BAD_REQUEST,
+            Self::ChatFileError(_) => StatusCode::BAD_REQUEST,
         };
 
         (status, Json(ErrorOutput::new(self.to_string()))).into_response()

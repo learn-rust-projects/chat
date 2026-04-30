@@ -29,7 +29,7 @@ pub struct AppStateInner {
     pub(crate) config: AppConfig,
     pub(crate) dk: DecodingKey,
     pub(crate) ek: EncodingKey,
-    pub(crate) db: sqlx::PgPool,
+    pub(crate) pool: sqlx::PgPool,
 }
 
 impl fmt::Debug for AppStateInner {
@@ -57,7 +57,12 @@ impl AppState {
             .await
             .context("Failed to connect to database")?;
         Ok(Self {
-            inner: Arc::new(AppStateInner { config, dk, ek, db }),
+            inner: Arc::new(AppStateInner {
+                config,
+                dk,
+                ek,
+                pool: db,
+            }),
         })
     }
 }
@@ -107,7 +112,7 @@ mod test_util {
                     config,
                     ek,
                     dk,
-                    db: pool,
+                    pool,
                 }),
             };
             Ok((tdb, state))

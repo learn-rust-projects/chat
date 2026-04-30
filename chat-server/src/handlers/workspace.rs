@@ -6,7 +6,7 @@ pub(crate) async fn list_chat_users_handler(
     Extension(user): Extension<User>,
     State(state): State<AppState>,
 ) -> Result<impl IntoResponse, AppError> {
-    let users = Workspace::fetch_all_chat_users(user.ws_id as _, &state.db).await?;
+    let users = Workspace::fetch_all_chat_users(user.ws_id as _, &state.pool).await?;
     Ok((StatusCode::OK, Json(users)).into_response())
 }
 
@@ -19,7 +19,7 @@ mod tests {
     #[tokio::test]
     async fn list_chat_users_should_work() -> Result<()> {
         let (_tdb, state) = crate::AppState::new_for_test().await?;
-        let pool = &state.db;
+        let pool = &state.pool;
         let ws = Workspace::create("test", 0, pool).await.unwrap();
         let input = CreateUser::new(&ws.name, "Tyr Chen", "tchen@acme.org", "test");
         let user1 = User::create(&input, pool).await.unwrap();
