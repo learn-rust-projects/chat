@@ -10,7 +10,7 @@ use reqwest::{
 use reqwest_eventsource::{Event, EventSource};
 use serde::Deserialize;
 use serde_json::json;
-use tokio::{net::TcpListener, time::sleep};
+use tokio::{net::TcpListener, sync::oneshot, time::sleep};
 use tracing::{info, level_filters::LevelFilter, warn};
 use tracing_subscriber::{
     Layer,
@@ -18,6 +18,7 @@ use tracing_subscriber::{
     layer::SubscriberExt,
     util::SubscriberInitExt,
 };
+
 // test1:
 // name: user 1 create chat
 // steps:
@@ -57,16 +58,16 @@ async fn chat_server_should_work() -> Result<()> {
     let (tdb, state) = chat_server::AppState::new_for_test().await?;
     let chat_server = ChatServer::new(state).await?;
     let db_url = tdb.url();
-    NotifyServer::new(&db_url, &chat_server.token).await?;
-    sleep(Duration::from_millis(1000)).await;
+    let (tx, rx) = oneshot::channel::<()>();
+    NotifyServer::new(&db_url, &chat_server.token, Some(tx)).await?;
+    rx.await?;
     let chat = chat_server.create_chat().await?;
     let _msg = chat_server.create_message(chat.id as u64).await?;
-    sleep(Duration::from_millis(1000)).await;
     Ok(())
 }
 
 impl NotifyServer {
-    async fn new(db_url: &str, token: &str) -> Result<Self> {
+    async fn new(db_url: &str, token: &str, mut tx: Option<oneshot::Sender<()>>) -> Result<Self> {
         let mut config = notify_server::AppConfig::load()?;
         config.server.db_url = db_url.to_string();
         let app = notify_server::get_router(config).await?;
@@ -84,7 +85,13 @@ impl NotifyServer {
         tokio::spawn(async move {
             while let Some(event) = es.next().await {
                 match event {
-                    Ok(Event::Open) => warn!("Connection Open!"),
+                    Ok(Event::Open) => {
+                        warn!("Connection Open!");
+                        // 只发一次！发完就把 tx 拿走，下次不会再发
+                        if let Some(tx) = tx.take() {
+                            let _ = tx.send(()); // 用 _ = 避免 send 失败 panic
+                        }
+                    }
                     Ok(Event::Message(message)) => match message.event.as_str() {
                         "NewChat" => {
                             let chat: Chat = serde_json::from_str(&message.data).unwrap();
