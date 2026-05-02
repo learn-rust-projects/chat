@@ -6,6 +6,7 @@ use std::{ops::Deref, sync::Arc};
 
 use anyhow::Result;
 use axum::{
+    Router,
     middleware::from_fn_with_state,
     response::{Html, IntoResponse},
 };
@@ -14,11 +15,10 @@ use chat_core::{
     middlewares::{TokenVerify, verify_token},
     utils::DecodingKey,
 };
+pub use config::AppConfig;
 use dashmap::DashMap;
 pub use notify::setup_pg_listener;
 use tokio::sync::broadcast;
-
-use crate::config::AppConfig;
 // 在编译时把 index.html 文件内容直接“嵌入”到二进制里，作为字符串常量使用。
 const INDEX_HTML: &str = include_str!("../index.html");
 
@@ -35,15 +35,15 @@ pub struct AppStateInner {
     pk: DecodingKey,
 }
 
-pub fn get_router() -> (axum::Router, AppState) {
-    let config = config::AppConfig::load().unwrap();
+pub async fn get_router(config: AppConfig) -> anyhow::Result<Router> {
     let state = AppState::new(config);
+    setup_pg_listener(state.clone()).await?;
     let app = axum::Router::new()
         .route("/events", axum::routing::get(sse::sse_handler))
         .layer(from_fn_with_state(state.clone(), verify_token::<AppState>))
-        .route("/index", axum::routing::get(index_handler))
+        .route("/", axum::routing::get(index_handler))
         .with_state(state.clone());
-    (app, state)
+    Ok(app)
 }
 
 async fn index_handler() -> impl IntoResponse {

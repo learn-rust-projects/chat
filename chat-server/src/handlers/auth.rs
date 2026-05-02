@@ -1,5 +1,6 @@
 use axum::{Json, extract::State, http::StatusCode, response::IntoResponse};
 use serde::{Deserialize, Serialize};
+use tracing::info;
 
 use crate::{
     AppError, AppState,
@@ -24,6 +25,7 @@ pub(crate) async fn signin_handler(
     State(state): State<AppState>,
     Json(input): Json<SigninUser>,
 ) -> Result<impl IntoResponse, AppError> {
+    info!("signin_handler: {:?}", input);
     let user = state.verify_user(&input).await?;
     match user {
         Some(user) => {

@@ -1,9 +1,11 @@
 
 [workspace]
 resolver = "3"
-members = ["chat-server", "chat-core", "notify-server"]
+members = ["chat-server", "chat-core", "notify-server",  "chat-test"]
 [workspace.dependencies]
 chat-core = { path = "./chat-core" }
+chat-server = { path = "./chat-server" }
+notify-server = { path = "./notify-server" }
 anyhow = "1.0.102"
 axum = { version = "0.8.9", features = ["http2", "multipart", "query", "tracing"] }
 axum-extra = { version = "0.12.6", features = ["typed-header"] }

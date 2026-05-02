@@ -75,8 +75,7 @@ impl AppState {
         })
     }
 }
-pub async fn get_router(config: AppConfig) -> Result<Router, AppError> {
-    let state = AppState::try_new(config).await?;
+pub async fn get_router(state: AppState) -> Result<Router, AppError> {
     let chat = Router::new()
         .route(
             "/{id}",
@@ -106,7 +105,7 @@ pub async fn get_router(config: AppConfig) -> Result<Router, AppError> {
     Ok(set_layer(app))
 }
 
-#[cfg(test)]
+#[cfg(feature = "test-util")]
 mod test_util {
     use sqlx::{Executor, PgPool};
     use sqlx_db_tester::TestPg;

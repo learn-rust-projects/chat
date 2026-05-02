@@ -1,5 +1,5 @@
 use axum::serve;
-use chat_server::{AppConfig, get_router};
+use chat_server::{AppConfig, AppState, get_router};
 use tokio::net::TcpListener;
 use tracing::{info, level_filters::LevelFilter};
 use tracing_subscriber::{
@@ -18,7 +18,8 @@ async fn main() -> anyhow::Result<()> {
 
     let config = AppConfig::load()?;
     let addr = format!("0.0.0.0:{}", config.server.port);
-    let app: axum::Router = get_router(config).await?;
+    let state = AppState::try_new(config).await?;
+    let app: axum::Router = get_router(state).await?;
     let listener = TcpListener::bind(&addr).await?;
     info!("Listening on: {}", addr);
 
