@@ -5,8 +5,15 @@ mod sse;
 use std::{ops::Deref, sync::Arc};
 
 use anyhow::Result;
-use axum::response::{Html, IntoResponse};
-use chat_core::{User, middlewares::TokenVerify, utils::DecodingKey};
+use axum::{
+    middleware::from_fn_with_state,
+    response::{Html, IntoResponse},
+};
+use chat_core::{
+    User,
+    middlewares::{TokenVerify, verify_token},
+    utils::DecodingKey,
+};
 use dashmap::DashMap;
 pub use notify::setup_pg_listener;
 use tokio::sync::broadcast;
@@ -33,7 +40,7 @@ pub fn get_router() -> (axum::Router, AppState) {
     let state = AppState::new(config);
     let app = axum::Router::new()
         .route("/events", axum::routing::get(sse::sse_handler))
-        //.layer(from_fn_with_state(state.clone(), verify_token::<AppState>))
+        .layer(from_fn_with_state(state.clone(), verify_token::<AppState>))
         .route("/index", axum::routing::get(index_handler))
         .with_state(state.clone());
     (app, state)

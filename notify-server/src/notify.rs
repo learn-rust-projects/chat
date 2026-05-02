@@ -34,7 +34,7 @@ struct ChatUpdated {
 // pg_notify('chat_message_created', row_to_json(NEW)::text);
 #[derive(Debug, Serialize, Deserialize)]
 struct ChatMessageCreated {
-    messages: Message,
+    message: Message,
     members: Vec<i64>,
 }
 pub async fn setup_pg_listener(state: AppState) -> anyhow::Result<()> {
@@ -94,7 +94,7 @@ impl Notification {
                 let user_ids = payload.members.iter().copied().collect();
                 Ok(Self {
                     user_ids,
-                    event: Arc::new(AppEvent::NewMessage(payload.messages)),
+                    event: Arc::new(AppEvent::NewMessage(payload.message)),
                 })
             }
             _ => Err(anyhow::anyhow!("Invalid notification type")),
