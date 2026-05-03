@@ -53,15 +53,14 @@ Authorization: Bearer {{token}}
 }
 ### update chat
 @token = {{signin.response.body.token}}
-PATCH http://localhost:6688/api/chats/
+PATCH http://localhost:6688/api/chats/20
 Content-Type: application/json
 Authorization: Bearer {{token}}
 
 {
-    "name": "acme",
+    "name": "update name",
     "members": [1, 2],
-    "public": false,
-    "id": 12
+    "public": false
 }
 
 ### delete chat

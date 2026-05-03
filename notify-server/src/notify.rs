@@ -14,6 +14,7 @@ pub enum AppEvent {
     NewChat(Chat),
     AddToChat(Chat),
     RemoveFromChat(Chat),
+    UpdateChatName(Chat),
     NewMessage(Message),
 }
 #[derive(Debug)]
@@ -76,11 +77,15 @@ impl Notification {
             "chat_updated" => {
                 let payload: ChatUpdated = serde_json::from_str(payload)?;
                 info!("ChatUpdated: {:?}", payload);
-                let user_ids =
+                let (update_name, user_ids) =
                     get_affected_chat_user_ids(payload.old.as_ref(), payload.new.as_ref());
+                info!("update_name: {}, user_ids: {:?}", update_name, user_ids);
                 let event = match payload.op.as_str() {
                     "INSERT" => AppEvent::NewChat(payload.new.expect("new should exist")),
-                    "UPDATE" => AppEvent::AddToChat(payload.new.expect("new should exist")),
+                    "UPDATE" => match update_name {
+                        true => AppEvent::UpdateChatName(payload.new.expect("new should exist")),
+                        false => AppEvent::AddToChat(payload.new.expect("new should exist")),
+                    },
                     "DELETE" => AppEvent::RemoveFromChat(payload.old.expect("old should exist")),
                     _ => return Err(anyhow::anyhow!("Invalid operation")),
                 };
@@ -101,15 +106,16 @@ impl Notification {
         }
     }
 }
-
-fn get_affected_chat_user_ids(old: Option<&Chat>, new: Option<&Chat>) -> HashSet<i64> {
-    match (old, new) {
+fn get_affected_chat_user_ids(old: Option<&Chat>, new: Option<&Chat>) -> (bool, HashSet<i64>) {
+    let mut update_name = false;
+    let user_ids = match (old, new) {
         (Some(old), Some(new)) => {
             // diff old/new members, if identical, no need to notify, otherwise notify the
             // union of both
             let old_user_ids: HashSet<_> = old.members.iter().copied().collect();
             let new_user_ids: HashSet<_> = new.members.iter().copied().collect();
-            if old_user_ids == new_user_ids {
+            update_name = old.name != new.name;
+            if old_user_ids == new_user_ids && !update_name {
                 HashSet::new()
             } else {
                 // notify the union of both
@@ -121,5 +127,6 @@ fn get_affected_chat_user_ids(old: Option<&Chat>, new: Option<&Chat>) -> HashSet
         // create chat, notify all members in the chat
         (None, Some(new)) => new.members.iter().copied().collect(),
         _ => HashSet::new(),
-    }
+    };
+    (update_name, user_ids)
 }

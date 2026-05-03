@@ -44,6 +44,9 @@
 			source.addEventListener("NewMessage", function (event) {
 				console.log("NewMessage:", event.data);
 			});
+			source.addEventListener("UpdateChatName", function (event) {
+				console.log("UpdateChatName:", event.data);
+			});
 		</script>
 	</body>
 </html>
