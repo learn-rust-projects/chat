@@ -21,3 +21,4 @@ chat-core = { workspace = true }
 jwt-simple = { workspace = true }
 dashmap = "6.1.0"
 serde_json.workspace = true
+async-stream = "0.3.6"

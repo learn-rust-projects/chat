@@ -63,6 +63,7 @@ async fn chat_server_should_work() -> Result<()> {
     rx.await?;
     let chat = chat_server.create_chat().await?;
     let _msg = chat_server.create_message(chat.id as u64).await?;
+    sleep(Duration::from_secs(3)).await;
     Ok(())
 }
 

@@ -102,7 +102,7 @@ Hello, World!
 
 ### get files png
 
-GET http://localhost:6688/api/files/2/365/67d/b987f7a96feff1947d2611879c831d805b.png
+GET http://localhost:6688/api/files/1/365/67d/b987f7a96feff1947d2611879c831d805b.png
 Authorization: Bearer {{token}}
 
 ### get files txt

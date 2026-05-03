@@ -5,6 +5,7 @@ mod error;
 mod handlers;
 mod middlewares;
 mod models;
+mod openapi;
 use anyhow::Context;
 use axum::{
     Router,
@@ -21,6 +22,8 @@ pub use error::AppError;
 use handlers::*;
 use middlewares::*;
 use models::*;
+use openapi::OpenApiRouter;
+
 #[derive(Debug, Clone)]
 pub struct AppState {
     inner: Arc<AppStateInner>,
@@ -98,6 +101,7 @@ pub async fn get_router(state: AppState) -> Result<Router, AppError> {
         .route("/signup", post(signup_handler));
 
     let app = Router::new()
+        .openapi()
         .route("/", axum::routing::get(index_handler))
         .nest("/api", api)
         .with_state(state);

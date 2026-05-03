@@ -4,15 +4,31 @@ use axum::{
     http::HeaderMap,
     response::IntoResponse,
 };
-use chat_core::User;
+use chat_core::{Message, User};
+use serde::Deserialize;
 use tokio::fs;
 use tracing::{info, warn};
+use utoipa::ToSchema;
 
 use crate::{
     AppError, AppState,
+    error::ErrorOutput,
     models::{ChatFile, CreateMessage, ListMessages},
 };
-
+#[utoipa::path(
+    post,
+    path = "/api/chats/{id}",
+    params(
+        ("id" = u64, Path, description = "Chat id"),
+    ),
+    responses(
+        (status = 200, description = "Message created", body = Message),
+        (status = 400, description = "Invalid input", body = ErrorOutput),
+    ),
+    security(
+        ("token" = [])
+    )
+)]
 pub(crate) async fn send_message_handler(
     Extension(user): Extension<User>,
     State(state): State<AppState>,
@@ -23,6 +39,23 @@ pub(crate) async fn send_message_handler(
 
     Ok(Json(msg))
 }
+#[utoipa::path(
+    get,
+    path = "/api/chats/{id}/messages",
+    params(
+        ("id" = u64, Path, description = "Chat id"),
+        ("input" = ListMessages, Query, description = "List messages input"),
+    ),
+    responses(
+        (status = 200, description = "List of messages", body = Vec<Message>),
+    ),
+    security(
+        ("token" = [])
+    )
+)]
+/// Get all messages in the chat system by chat id.
+///
+/// - Otherwise, it will return 200 with a list of messages.
 pub(crate) async fn list_message_handler(
     State(state): State<AppState>,
     Path(id): Path<u64>,
@@ -31,6 +64,26 @@ pub(crate) async fn list_message_handler(
     let messages = state.list_messages(input, id as _).await?;
     Ok(Json(messages))
 }
+#[derive(Deserialize, ToSchema)]
+#[allow(unused)]
+struct HelloForm {
+    name: String,
+    #[schema(format = Binary, content_media_type = "application/octet-stream")]
+    file: String,
+}
+
+#[utoipa::path(
+    post,
+    path = "/api/upload",
+    request_body(content = HelloForm, content_type = "multipart/form-data"),
+    responses(
+        (status = 200, description = "List of uploaded files", body = Vec<String>),
+        (status = 400, description = "Invalid input", body = ErrorOutput),
+    ),
+    security(
+        ("token" = [])
+    )
+)]
 pub(crate) async fn upload_handler(
     Extension(user): Extension<User>,
     State(state): State<AppState>,
@@ -64,6 +117,21 @@ pub(crate) async fn upload_handler(
     Ok(Json(files))
 }
 
+#[utoipa::path(
+    get,
+    path = "/api/files/{ws_id}/{path}",
+    params(
+        ("ws_id" = i64, Path, description = "Workspace id"),
+        ("path" = String, Path, description = "File path"),
+    ),
+    responses(
+        (status = 200, description = "File content", body = Vec<u8>),
+        (status = 404, description = "File not found", body = ErrorOutput),
+    ),
+    security(
+        ("token" = [])
+    )
+)]
 pub(crate) async fn file_handler(
     Extension(user): Extension<User>,
     State(state): State<AppState>,
@@ -76,6 +144,7 @@ pub(crate) async fn file_handler(
     }
     let base_dir = state.config.server.base_dir.join(ws_id.to_string());
     let path = base_dir.join(path);
+    info!("Request file: {:?}", path);
     if !path.exists() {
         return Err(AppError::NotFound("File doesn't exist".to_string()));
     }

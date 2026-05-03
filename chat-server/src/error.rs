@@ -5,6 +5,7 @@ use axum::{
 };
 use serde::{Deserialize, Serialize};
 use thiserror::Error;
+use utoipa::ToSchema;
 
 #[derive(Debug, Error)]
 
@@ -33,7 +34,7 @@ pub enum AppError {
     #[error("multipart error: {0}")]
     MultipartError(#[from] axum::extract::multipart::MultipartError),
 }
-#[derive(Debug, Serialize, Deserialize)]
+#[derive(Debug, Serialize, ToSchema, Deserialize)]
 pub struct ErrorOutput {
     pub error: String,
 }

@@ -1,21 +1,21 @@
 use chat_core::{Chat, ChatType};
 use serde::{Deserialize, Serialize};
+use utoipa::ToSchema;
 
 use crate::{AppError, AppState};
 
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize, ToSchema)]
 pub struct CreateChat {
     pub name: Option<String>,
     pub members: Vec<i64>,
     pub public: bool,
 }
 
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize, ToSchema)]
 pub struct UpdateChat {
     pub name: Option<String>,
     pub members: Vec<i64>,
     pub public: bool,
-    pub id: i64,
 }
 impl From<UpdateChat> for CreateChat {
     fn from(value: UpdateChat) -> Self {
@@ -111,7 +111,11 @@ impl AppState {
 
         Ok(chat)
     }
-    pub async fn update_chat_by_id(&self, input: UpdateChat) -> Result<Chat, AppError> {
+    pub async fn update_chat_by_id(
+        &self,
+        id: i64,
+        input: UpdateChat,
+    ) -> Result<Option<Chat>, AppError> {
         self.check_chat_input(&input.clone().into()).await?;
         let chat_type = match (&input.name, input.members.len()) {
             (None, 2) => ChatType::Single,
@@ -135,24 +139,24 @@ impl AppState {
         .bind(input.name)
         .bind(chat_type)
         .bind(&input.members)
-        .bind(input.id)
-        .fetch_one(&self.pool)
+        .bind(id)
+        .fetch_optional(&self.pool)
         .await?;
 
         Ok(chat)
     }
-    pub async fn delete_chat_by_id(&self, id: i64) -> Result<(), AppError> {
-        sqlx::query(
+    pub async fn delete_chat_by_id(&self, id: i64) -> Result<bool, AppError> {
+        let chat = sqlx::query(
             r#"
             DELETE FROM chats
             WHERE id = $1
             "#,
         )
         .bind(id)
-        .execute(&self.pool)
+        .fetch_optional(&self.pool)
         .await?;
 
-        Ok(())
+        Ok(chat.is_some())
     }
     pub async fn is_chat_member(&self, chat_id: u64, user_id: u64) -> Result<bool, AppError> {
         let is_member: Option<sqlx::postgres::PgRow> = sqlx::query(
@@ -188,14 +192,13 @@ impl CreateChat {
 
 #[cfg(test)]
 impl UpdateChat {
-    pub fn new(id: i64, name: &str, members: &[i64], public: bool) -> Self {
+    pub fn new(name: &str, members: &[i64], public: bool) -> Self {
         let name = if name.is_empty() {
             None
         } else {
             Some(name.to_string())
         };
         Self {
-            id,
             name,
             members: members.to_vec(),
             public,
@@ -266,11 +269,12 @@ mod tests {
     #[tokio::test]
     async fn chat_update_by_id_should_work() -> Result<(), AppError> {
         let (_tdb, app_state) = AppState::new_for_test().await?;
-        let input = UpdateChat::new(1, "random", &[1, 2], false);
+        let input = UpdateChat::new("random", &[1, 2], false);
         let chat = app_state
-            .update_chat_by_id(input)
+            .update_chat_by_id(1, input)
             .await
-            .expect("update chat by id failed");
+            .expect("update chat by id failed")
+            .unwrap();
         assert_eq!(chat.id, 1);
         assert_eq!(chat.name.unwrap(), "random");
         assert_eq!(chat.ws_id, 1);

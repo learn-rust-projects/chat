@@ -1,8 +1,19 @@
 use axum::{Extension, Json, extract::State, http::StatusCode, response::IntoResponse};
 use chat_core::User;
 
-use crate::{AppError, AppState};
+use crate::{AppError, AppState, error::ErrorOutput};
 
+#[utoipa::path(
+    get,
+    path = "/users",
+    responses(
+        (status = 200, description = "List of users", body = Vec<User>),
+        (status = 404, description = "Workspace not found", body = ErrorOutput),
+    ),
+    security(
+        ("token" = [])
+    )
+)]
 pub(crate) async fn list_chat_users_handler(
     Extension(user): Extension<User>,
     State(state): State<AppState>,
