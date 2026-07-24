@@ -58,3 +58,11 @@ bin/
 # -------------------------------
 *.env
 *.local
+# Keep the docker compose .env (default dev credentials) in source control
+!docker/postgresql/.env
+
+# -------------------------------
+# Docker bind-mount data volumes (kept out of source control)
+# -------------------------------
+# PostgreSQL data directory mounted to /var/lib/postgresql/data
+docker/postgresql/postgres-data/

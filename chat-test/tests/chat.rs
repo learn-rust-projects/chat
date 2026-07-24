@@ -56,13 +56,19 @@ async fn chat_server_should_work() -> Result<()> {
         .with_filter(LevelFilter::WARN);
     tracing_subscriber::registry().with(console).init();
     let (tdb, state) = chat_server::AppState::new_for_test().await?;
+    sleep(Duration::from_millis(1000)).await;
     let chat_server = ChatServer::new(state).await?;
+    info!("chat_server: Finished");
     let db_url = tdb.url();
     let (tx, rx) = oneshot::channel::<()>();
     NotifyServer::new(&db_url, &chat_server.token, Some(tx)).await?;
+    info!("NotifyServer: Finished");
     rx.await?;
+    info!("rx: Finished");
     let chat = chat_server.create_chat().await?;
+    info!("create_chat: Finished");
     let _msg = chat_server.create_message(chat.id as u64).await?;
+    info!("create_message: Finished");
     sleep(Duration::from_secs(3)).await;
     Ok(())
 }
@@ -80,7 +86,7 @@ impl NotifyServer {
                 .await
                 .unwrap();
         });
-
+        sleep(Duration::from_millis(1000)).await;
         let mut es = EventSource::get(format!("http://{}/events?access_token={}", addr, token));
 
         tokio::spawn(async move {
@@ -135,7 +141,7 @@ impl ChatServer {
                 .await
                 .unwrap();
         });
-        sleep(Duration::from_millis(500)).await;
+        sleep(Duration::from_millis(1000)).await;
         let client = reqwest::Client::new();
 
         let mut ret = Self {
