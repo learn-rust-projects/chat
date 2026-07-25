@@ -14,6 +14,7 @@ use crate::{
 #[utoipa::path(
     get,
     path = "/api/chats",
+    tag = "chat",
     responses(
         (status = 200, description = "List of chats", body = Vec<Chat>),
         (status = 403, description = "User signed out", body = ErrorOutput),
@@ -36,6 +37,7 @@ pub(crate) async fn list_chat_handler(
 #[utoipa::path(
     post,
     path = "/api/chats",
+    tag = "chat",
     responses(
         (status = 201, description = "Chat created", body = Chat),
         (status = 403, description = "User signed out", body = ErrorOutput),
@@ -60,6 +62,7 @@ pub(crate) async fn create_chat_handler(
 #[utoipa::path(
     get,
     path = "/api/chats/{id}",
+    tag = "chat",
     params(
         ("id" = u64, Path, description = "Chat id")
     ),
@@ -88,6 +91,7 @@ pub(crate) async fn get_chat_handler(
 #[utoipa::path(
     put,
     path = "/api/chats/{id}",
+    tag = "chat",
     params(
         ("id" = u64, Path, description = "Chat id")
     ),
@@ -117,6 +121,7 @@ pub(crate) async fn update_chat_handler(
 #[utoipa::path(
     delete,
     path = "/api/chats/{id}",
+    tag = "chat",
     params(
         ("id" = u64, Path, description = "Chat id")
     ),

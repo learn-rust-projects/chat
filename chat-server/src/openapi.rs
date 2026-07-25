@@ -24,6 +24,7 @@ pub(crate) trait OpenApiRouter {
             signup_handler,
             signin_handler,
             list_chat_handler,
+            list_chat_users_handler,
             create_chat_handler,
             get_chat_handler,
             update_chat_handler,
@@ -39,7 +40,10 @@ pub(crate) trait OpenApiRouter {
         ),
         modifiers(&SecurityAddon),
         tags(
+            (name = "auth", description = "Authentication operations"),
             (name = "chat", description = "Chat related operations"),
+            (name = "file", description = "File upload and download operations"),
+            (name = "user", description = "User related operations"),
         )
     )]
 pub(crate) struct ApiDoc;

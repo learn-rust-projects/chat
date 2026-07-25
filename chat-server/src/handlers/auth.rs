@@ -16,6 +16,7 @@ pub struct AuthOutput {
 #[utoipa::path(
     post,
     path = "/api/signup",
+    tag = "auth",
     responses(
         (status = 200, description = "User created", body = AuthOutput),
         (status = 409, description = "Email already exists", body = ErrorOutput),
@@ -38,6 +39,7 @@ pub(crate) async fn signup_handler(
 #[utoipa::path(
     post,
     path = "/api/signin",
+    tag = "auth",
     responses(
         (status = 200, description = "User signed in", body = AuthOutput),
         (status = 403, description = "Invalid email or password", body = ErrorOutput),

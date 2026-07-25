@@ -6,6 +6,7 @@ use crate::{AppError, AppState, error::ErrorOutput};
 #[utoipa::path(
     get,
     path = "/users",
+    tag = "user",
     responses(
         (status = 200, description = "List of users", body = Vec<User>),
         (status = 404, description = "Workspace not found", body = ErrorOutput),

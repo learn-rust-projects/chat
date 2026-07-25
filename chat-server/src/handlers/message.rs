@@ -18,6 +18,7 @@ use crate::{
 #[utoipa::path(
     post,
     path = "/api/chats/{id}",
+    tag = "chat",
     params(
         ("id" = u64, Path, description = "Chat id"),
     ),
@@ -42,6 +43,7 @@ pub(crate) async fn send_message_handler(
 #[utoipa::path(
     get,
     path = "/api/chats/{id}/messages",
+    tag = "chat",
     params(
         ("id" = u64, Path, description = "Chat id"),
         ("input" = ListMessages, Query, description = "List messages input"),
@@ -75,6 +77,7 @@ struct HelloForm {
 #[utoipa::path(
     post,
     path = "/api/upload",
+    tag = "file",
     request_body(content = HelloForm, content_type = "multipart/form-data"),
     responses(
         (status = 200, description = "List of uploaded files", body = Vec<String>),
@@ -120,6 +123,7 @@ pub(crate) async fn upload_handler(
 #[utoipa::path(
     get,
     path = "/api/files/{ws_id}/{path}",
+    tag = "file",
     params(
         ("ws_id" = i64, Path, description = "Workspace id"),
         ("path" = String, Path, description = "File path"),
